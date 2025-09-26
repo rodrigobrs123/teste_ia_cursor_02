@@ -13,6 +13,8 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
+
+
         $categories = [
             [
                 'name' => 'Futebol',
@@ -59,7 +61,9 @@ class CategorySeeder extends Seeder
         ];
 
         foreach ($categories as $category) {
-            Category::create($category);
+
+            Category::updateOrCreate($category);
+           // Category::create($category);
         }
     }
 }

@@ -322,7 +322,7 @@ class ProductSeeder extends Seeder
             // Mais produtos de Tênis
             [
                 'name' => 'Bola de Tênis Penn Championship',
-                'slug' => 'bola-tenis-penn-championship',
+                'slug' => 'bola-tenis-penn-cham;pionship',
                 'description' => 'Tubo com 3 bolas de tênis Penn Championship, aprovadas pela ITF para torneios oficiais.',
                 'short_description' => 'Tubo 3 bolas Penn Championship ITF',
                 'price' => 24.90,
@@ -355,7 +355,14 @@ class ProductSeeder extends Seeder
         ];
 
         foreach ($products as $product) {
-            Product::create($product);
-        }
+         // Product::create($product);
+            
+         Product::updateOrCreate(
+    ['sku' => $product['sku']], // só o SKU
+    $product
+);
+
+       }
+
     }
 }
