@@ -6,18 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Services\NuvemPagoService;
+use App\Models\Customer;
+use App\Models\Payment;
+use App\Services\MercadoPagoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class OrderController extends Controller
 {
-    protected $nuvemPagoService;
+    protected $mercadoPagoService;
 
-    public function __construct(NuvemPagoService $nuvemPagoService)
+    public function __construct(MercadoPagoService $mercadoPagoService)
     {
-        $this->nuvemPagoService = $nuvemPagoService;
+        $this->mercadoPagoService = $mercadoPagoService;
     }
 
     public function store(Request $request): JsonResponse
@@ -26,14 +29,11 @@ class OrderController extends Controller
             'customer_name' => 'required|string|max:255',
             'customer_email' => 'required|email|max:255',
             'customer_phone' => 'required|string|max:20',
+            'customer_cpf' => 'required|string|size:11',
+            'customer_date_of_birth' => 'nullable|date',
             'shipping_address' => 'required|string',
-            'payment_method' => 'required|in:credit_card,pix,boleto',
-            'card_data' => 'required_if:payment_method,credit_card|array',
-            'card_data.number' => 'required_if:payment_method,credit_card|string',
-            'card_data.holder_name' => 'required_if:payment_method,credit_card|string',
-            'card_data.expiry_month' => 'required_if:payment_method,credit_card|integer|between:1,12',
-            'card_data.expiry_year' => 'required_if:payment_method,credit_card|integer|min:2024',
-            'card_data.cvv' => 'required_if:payment_method,credit_card|string|size:3'
+            'create_account' => 'boolean',
+            'password' => 'required_if:create_account,true|min:6'
         ]);
 
         $sessionId = $request->session()->getId();
@@ -63,23 +63,42 @@ class OrderController extends Controller
         try {
             DB::beginTransaction();
 
+            // Criar ou encontrar cliente
+            $customer = null;
+            if ($request->create_account) {
+                $customer = Customer::create([
+                    'name' => $request->customer_name,
+                    'email' => $request->customer_email,
+                    'cpf' => $request->customer_cpf,
+                    'date_of_birth' => $request->customer_date_of_birth,
+                    'phone' => $request->customer_phone,
+                    'address' => $request->shipping_address,
+                    'password' => Hash::make($request->password)
+                ]);
+            } else {
+                // Verificar se já existe um cliente com este CPF
+                $customer = Customer::where('cpf', $request->customer_cpf)->first();
+            }
+
             // Calcular totais
             $subtotal = $cartItems->sum(function ($item) {
                 return $item->getTotal();
             });
-            $shippingCost = 15.00; // Taxa fixa de frete
+            $shippingCost = $subtotal >= 200 ? 0 : 15.00;
             $total = $subtotal + $shippingCost;
 
             // Criar pedido
             $order = Order::create([
+                'customer_id' => $customer?->id,
                 'customer_name' => $request->customer_name,
                 'customer_email' => $request->customer_email,
                 'customer_phone' => $request->customer_phone,
+                'customer_cpf' => $request->customer_cpf,
+                'customer_date_of_birth' => $request->customer_date_of_birth,
                 'shipping_address' => $request->shipping_address,
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
                 'total' => $total,
-                'payment_method' => $request->payment_method,
                 'status' => 'pending',
                 'payment_status' => 'pending'
             ]);
@@ -100,32 +119,44 @@ class OrderController extends Controller
                 $cartItem->product->decrement('stock', $cartItem->quantity);
             }
 
-            // Processar pagamento
-            $paymentData = [
-                'amount' => $total,
-                'currency' => 'BRL',
-                'payment_method' => $request->payment_method,
-                'customer' => [
-                    'name' => $request->customer_name,
-                    'email' => $request->customer_email,
-                    'phone' => $request->customer_phone
-                ],
-                'order_id' => $order->order_number
-            ];
-
-            if ($request->payment_method === 'credit_card') {
-                $paymentData['card_data'] = $request->card_data;
+            // Preparar dados para MercadoPago
+            $items = [];
+            foreach ($cartItems as $cartItem) {
+                $items[] = [
+                    'id' => $cartItem->product->id,
+                    'title' => $cartItem->product->name,
+                    'description' => $cartItem->product->short_description ?? $cartItem->product->name,
+                    'quantity' => $cartItem->quantity,
+                    'unit_price' => $cartItem->price
+                ];
             }
 
-            $paymentResult = $this->nuvemPagoService->processPayment($paymentData);
+            // Adicionar frete como item se houver
+            if ($shippingCost > 0) {
+                $items[] = [
+                    'id' => 'shipping',
+                    'title' => 'Frete',
+                    'description' => 'Taxa de entrega',
+                    'quantity' => 1,
+                    'unit_price' => $shippingCost
+                ];
+            }
 
-            if ($paymentResult['success']) {
-                $order->update([
-                    'payment_status' => $paymentResult['status'] === 'approved' ? 'paid' : 'pending',
-                    'payment_transaction_id' => $paymentResult['transaction_id'],
-                    'status' => $paymentResult['status'] === 'approved' ? 'processing' : 'pending'
-                ]);
+            $preferenceData = [
+                'items' => $items,
+                'payer' => [
+                    'name' => $request->customer_name,
+                    'email' => $request->customer_email,
+                    'phone' => $request->customer_phone,
+                    'cpf' => $request->customer_cpf,
+                    'date_created' => $request->customer_date_of_birth
+                ],
+                'external_reference' => $order->order_number
+            ];
 
+            $preferenceResult = $this->mercadoPagoService->createPreference($preferenceData);
+
+            if ($preferenceResult['success']) {
                 // Limpar carrinho
                 CartItem::where('session_id', $sessionId)->delete();
 
@@ -138,7 +169,8 @@ class OrderController extends Controller
                     'message' => 'Pedido criado com sucesso',
                     'data' => [
                         'order' => $order,
-                        'payment' => $paymentResult
+                        'checkout_url' => $preferenceResult['checkout_url'],
+                        'preference_id' => $preferenceResult['preference_id']
                     ]
                 ]);
             } else {
@@ -146,7 +178,7 @@ class OrderController extends Controller
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Erro no processamento do pagamento: ' . $paymentResult['message']
+                    'message' => 'Erro ao criar preferência de pagamento: ' . $preferenceResult['message']
                 ], 400);
             }
 
@@ -155,7 +187,7 @@ class OrderController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro interno do servidor'
+                'message' => 'Erro interno do servidor: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -170,24 +202,98 @@ class OrderController extends Controller
         ]);
     }
 
-    public function paymentCallback(Request $request): JsonResponse
+    public function paymentWebhook(Request $request): JsonResponse
     {
-        // Webhook do NuvemPago
-        $data = $request->all();
+        try {
+            $data = $request->all();
+            
+            $webhookResult = $this->mercadoPagoService->processWebhook($data);
+            
+            if ($webhookResult['success']) {
+                $order = Order::where('order_number', $webhookResult['external_reference'])->first();
+                
+                if ($order) {
+                    $paymentStatus = $this->mercadoPagoService->mapPaymentStatus($webhookResult['status']);
+                    
+                    // Criar ou atualizar registro de pagamento
+                    $payment = Payment::updateOrCreate(
+                        ['payment_id' => $webhookResult['payment_id']],
+                        [
+                            'order_id' => $order->id,
+                            'customer_id' => $order->customer_id,
+                            'external_reference' => $order->order_number,
+                            'amount' => $order->total,
+                            'status' => $paymentStatus,
+                            'payment_data' => $webhookResult['payment_data'],
+                            'paid_at' => $paymentStatus === 'paid' ? now() : null
+                        ]
+                    );
+                    
+                    // Atualizar status do pedido
+                    $orderStatus = match($paymentStatus) {
+                        'paid' => 'processing',
+                        'failed', 'cancelled' => 'cancelled',
+                        default => 'pending'
+                    };
+                    
+                    $order->update([
+                        'payment_status' => $paymentStatus,
+                        'status' => $orderStatus,
+                        'payment_transaction_id' => $webhookResult['payment_id']
+                    ]);
+                    
+                    return response()->json(['success' => true]);
+                }
+            }
+            
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
+            
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 
-        if (isset($data['order_id']) && isset($data['status'])) {
-            $order = Order::where('order_number', $data['order_id'])->first();
-
+    public function paymentSuccess(Request $request): JsonResponse
+    {
+        $paymentId = $request->get('payment_id');
+        $status = $request->get('status');
+        $externalReference = $request->get('external_reference');
+        
+        if ($paymentId && $externalReference) {
+            $order = Order::where('order_number', $externalReference)->first();
+            
             if ($order) {
-                $order->update([
-                    'payment_status' => $data['status'] === 'approved' ? 'paid' : 'failed',
-                    'status' => $data['status'] === 'approved' ? 'processing' : 'cancelled'
+                return response()->json([
+                    'success' => true,
+                    'redirect_url' => url("/payment-success/{$order->id}")
                 ]);
-
-                return response()->json(['success' => true]);
             }
         }
+        
+        return response()->json([
+            'success' => false,
+            'redirect_url' => url('/payment-error')
+        ]);
+    }
 
-        return response()->json(['success' => false], 400);
+    public function paymentFailure(Request $request): JsonResponse
+    {
+        $externalReference = $request->get('external_reference');
+        
+        if ($externalReference) {
+            $order = Order::where('order_number', $externalReference)->first();
+            
+            if ($order) {
+                return response()->json([
+                    'success' => false,
+                    'redirect_url' => url("/payment-error/{$order->id}")
+                ]);
+            }
+        }
+        
+        return response()->json([
+            'success' => false,
+            'redirect_url' => url('/payment-error')
+        ]);
     }
 }

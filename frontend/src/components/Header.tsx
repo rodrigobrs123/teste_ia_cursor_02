@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCartIcon, MagnifyingGlassIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ShoppingCartIcon, MagnifyingGlassIcon, Bars3Icon, XMarkIcon, UserIcon } from '@heroicons/react/24/outline';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Category } from '../types';
 import { categoryService } from '../services/api';
 
 const Header: React.FC = () => {
   const { cart } = useCart();
+  const { customer, logout } = useAuth();
   const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -72,8 +75,57 @@ const Header: React.FC = () => {
             </div>
           </form>
 
-          {/* Cart and Menu */}
+          {/* Cart and User Menu */}
           <div className="flex items-center space-x-4">
+            {/* User Menu */}
+            {customer ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-2 p-2 text-gray-700 hover:text-primary-600"
+                >
+                  <UserIcon className="h-6 w-6" />
+                  <span className="hidden md:block text-sm">{customer.name}</span>
+                </button>
+                
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                    <Link
+                      to="/profile"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      Meu Perfil
+                    </Link>
+                    <Link
+                      to="/orders"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      Meus Pedidos
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setShowUserMenu(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Sair
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="flex items-center space-x-1 p-2 text-gray-700 hover:text-primary-600"
+              >
+                <UserIcon className="h-6 w-6" />
+                <span className="hidden md:block text-sm">Entrar</span>
+              </Link>
+            )}
+
             {/* Cart */}
             <Link to="/cart" className="relative p-2">
               <ShoppingCartIcon className="h-6 w-6 text-gray-700" />
