@@ -53,13 +53,26 @@ export const cartService = {
   
   clear: () => api.delete<ApiResponse<void>>('/cart'),
 };
-
+/*
 export const orderService = {
   create: (orderData: any) => 
     api.post<ApiResponse<{ order: Order; checkout_url: string; preference_id: string }>>('/orders', orderData),
   
   get: (id: number) => api.get<ApiResponse<Order>>(`/orders/${id}`),
 };
+*/
+
+export const orderService = {
+  create: (orderData: any) => 
+    api.post<ApiResponse<{ order: Order; checkout_url: string; preference_id: string }>>('/orders', orderData),
+
+  get: (id: number) => api.get<ApiResponse<Order>>(`/orders/${id}`),
+
+  // Alias opcional (mesmo comportamento de "get")
+  getById: (id: number) => api.get<ApiResponse<Order>>(`/orders/${id}`),
+};
+
+
 
 export const authService = {
   login: (credentials: { email: string; password: string }) =>

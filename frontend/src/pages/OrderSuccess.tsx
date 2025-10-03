@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { CheckCircleIcon, ClockIcon, DocumentIcon } from '@heroicons/react/24/outline';
 import Loading from '../components/Loading';
-import { Order } from '../types';
 import { orderService } from '../services/api';
 import { formatPrice } from '../utils/format';
+import { Order, OrderItem } from '../types';
+
 
 const OrderSuccess: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -241,7 +242,7 @@ const OrderSuccess: React.FC = () => {
           <div className="mt-8">
             <h3 className="font-semibold text-gray-900 mb-4">Itens do Pedido</h3>
             <div className="space-y-3">
-              {order.order_items.map((item) => (
+              {order?.order_items?.map((item: OrderItem) => (
                 <div key={item.id} className="flex justify-between items-center">
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{item.product_name}</p>

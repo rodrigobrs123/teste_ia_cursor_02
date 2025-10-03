@@ -62,6 +62,7 @@ export interface OrderItem {
   updated_at: string;
 }
 
+
 export interface Order {
   id: number;
   order_number: string;
@@ -76,7 +77,7 @@ export interface Order {
   payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
   payment_method: string;
   payment_transaction_id?: string;
-  order_items: OrderItem[];
+  order_items?: OrderItem[];
   created_at: string;
   updated_at: string;
 }

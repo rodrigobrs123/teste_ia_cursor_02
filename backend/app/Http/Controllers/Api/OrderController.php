@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Resources\OrderResource;
 
 class OrderController extends Controller
 {
@@ -192,13 +193,24 @@ class OrderController extends Controller
         }
     }
 
-    public function show(Order $order): JsonResponse
+ /*   public function show(Order $order): JsonResponse
     {
         $order->load('orderItems.product');
 
         return response()->json([
             'success' => true,
             'data' => $order
+        ]);
+    }*/
+
+
+    public function show(Order $order): JsonResponse
+    {
+        $order->load('orderItems.product');
+
+        return response()->json([
+            'success' => true,
+            'data' => new OrderResource($order)
         ]);
     }
 
