@@ -26,6 +26,7 @@ Route::get('/categories/{category}', [CategoryController::class, 'show']);
 // Produtos
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/featured', [ProductController::class, 'featured']);
+Route::get('/products/search-suggestions', [ProductController::class, 'searchSuggestions']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
 
 // Carrinho

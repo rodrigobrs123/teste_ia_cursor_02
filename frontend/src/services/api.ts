@@ -37,6 +37,11 @@ export const productService = {
   getFeatured: () => api.get<ApiResponse<Product[]>>('/products/featured'),
   
   getById: (id: number) => api.get<ApiResponse<Product>>(`/products/${id}`),
+  
+  searchSuggestions: (query: string) => 
+    api.get<ApiResponse<Array<{ id: number; name: string; image?: string }>>>('/products/search-suggestions', { 
+      params: { q: query } 
+    }),
 };
 
 export const cartService = {
@@ -53,15 +58,6 @@ export const cartService = {
   
   clear: () => api.delete<ApiResponse<void>>('/cart'),
 };
-/*
-export const orderService = {
-  create: (orderData: any) => 
-    api.post<ApiResponse<{ order: Order; checkout_url: string; preference_id: string }>>('/orders', orderData),
-  
-  get: (id: number) => api.get<ApiResponse<Order>>(`/orders/${id}`),
-};
-*/
-
 export const orderService = {
   create: (orderData: any) => 
     api.post<ApiResponse<{ order: Order; checkout_url: string; preference_id: string }>>('/orders', orderData),

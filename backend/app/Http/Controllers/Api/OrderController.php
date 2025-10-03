@@ -152,7 +152,8 @@ class OrderController extends Controller
                     'cpf' => $request->customer_cpf,
                     'date_created' => $request->customer_date_of_birth
                 ],
-                'external_reference' => $order->order_number
+                'external_reference' => $order->order_number,
+                'order_id' => $order->id
             ];
 
             $preferenceResult = $this->mercadoPagoService->createPreference($preferenceData);

@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCartIcon, MagnifyingGlassIcon, Bars3Icon, XMarkIcon, UserIcon } from '@heroicons/react/24/outline';
+import { ShoppingCartIcon, Bars3Icon, XMarkIcon, UserIcon } from '@heroicons/react/24/outline';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Category } from '../types';
 import { categoryService } from '../services/api';
+import SearchBox from './SearchBox';
 
 const Header: React.FC = () => {
   const { cart } = useCart();
   const { customer, logout } = useAuth();
   const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -28,13 +28,6 @@ const Header: React.FC = () => {
     fetchCategories();
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
-      setSearchTerm('');
-    }
-  };
 
   return (
     <header className="bg-white shadow-lg">
@@ -57,23 +50,9 @@ const Header: React.FC = () => {
           </Link>
 
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-lg mx-8">
-            <div className="relative w-full">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar produtos..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-l-md focus:ring-primary-500 focus:border-primary-500"
-              />
-              <button
-                type="submit"
-                className="absolute right-0 top-0 h-full px-4 bg-primary-600 text-white rounded-r-md hover:bg-primary-700 transition-colors"
-              >
-                <MagnifyingGlassIcon className="h-5 w-5" />
-              </button>
-            </div>
-          </form>
+          <div className="hidden md:flex flex-1 max-w-lg mx-8">
+            <SearchBox className="w-full" />
+          </div>
 
           {/* Cart and User Menu */}
           <div className="flex items-center space-x-4">
@@ -151,23 +130,9 @@ const Header: React.FC = () => {
         </div>
 
         {/* Mobile Search */}
-        <form onSubmit={handleSearch} className="md:hidden pb-4">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar produtos..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-l-md focus:ring-primary-500 focus:border-primary-500"
-            />
-            <button
-              type="submit"
-              className="absolute right-0 top-0 h-full px-4 bg-primary-600 text-white rounded-r-md hover:bg-primary-700 transition-colors"
-            >
-              <MagnifyingGlassIcon className="h-5 w-5" />
-            </button>
-          </div>
-        </form>
+        <div className="md:hidden pb-4">
+          <SearchBox className="w-full" />
+        </div>
       </div>
 
       {/* Navigation */}

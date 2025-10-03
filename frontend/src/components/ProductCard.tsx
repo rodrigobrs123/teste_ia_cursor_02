@@ -18,10 +18,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     
     try {
       await addToCart(product.id, 1);
-      // Você pode adicionar uma notificação aqui
+      alert('Produto adicionado ao carrinho!');
     } catch (error) {
       console.error('Error adding to cart:', error);
-      // Você pode adicionar uma notificação de erro aqui
+      alert('Erro ao adicionar produto ao carrinho. Tente novamente.');
     }
   };
 

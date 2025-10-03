@@ -59,9 +59,9 @@ class MercadoPagoService
                     'date_created' => $data['payer']['date_created'] ?? null
                 ],
                 'back_urls' => [
-                    'success' => url('/payment/success'),
-                    'failure' => url('/payment/failure'),
-                    'pending' => url('/payment/pending')
+                    'success' => config('app.frontend_url', 'http://localhost:3000') . '/payment-success/' . $data['order_id'],
+                    'failure' => config('app.frontend_url', 'http://localhost:3000') . '/payment-error/' . ($data['order_id'] ?? ''),
+                    'pending' => config('app.frontend_url', 'http://localhost:3000') . '/payment-error/' . ($data['order_id'] ?? '')
                 ],
                 'auto_return' => 'approved',
                 'payment_methods' => [

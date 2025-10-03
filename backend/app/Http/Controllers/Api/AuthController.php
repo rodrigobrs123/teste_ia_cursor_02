@@ -24,6 +24,14 @@ class AuthController extends Controller
             'password' => 'required|string|min:6|confirmed'
         ]);
 
+        // Validate CPF format
+        if (!$this->isValidCpf($request->cpf)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CPF inválido'
+            ], 422);
+        }
+
         try {
             $customer = Customer::create([
                 'name' => $request->name,
@@ -141,5 +149,48 @@ class AuthController extends Controller
                 'message' => 'Erro ao atualizar perfil: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function isValidCpf(string $cpf): bool
+    {
+        // Remove any non-digit characters
+        $cpf = preg_replace('/\D/', '', $cpf);
+        
+        // Check if it has 11 digits
+        if (strlen($cpf) !== 11) {
+            return false;
+        }
+        
+        // Check if all digits are the same
+        if (preg_match('/^(\d)\1{10}$/', $cpf)) {
+            return false;
+        }
+        
+        // Validate CPF algorithm
+        $sum = 0;
+        for ($i = 0; $i < 9; $i++) {
+            $sum += intval($cpf[$i]) * (10 - $i);
+        }
+        $remainder = ($sum * 10) % 11;
+        if ($remainder === 10 || $remainder === 11) {
+            $remainder = 0;
+        }
+        if ($remainder !== intval($cpf[9])) {
+            return false;
+        }
+        
+        $sum = 0;
+        for ($i = 0; $i < 10; $i++) {
+            $sum += intval($cpf[$i]) * (11 - $i);
+        }
+        $remainder = ($sum * 10) % 11;
+        if ($remainder === 10 || $remainder === 11) {
+            $remainder = 0;
+        }
+        if ($remainder !== intval($cpf[10])) {
+            return false;
+        }
+        
+        return true;
     }
 }

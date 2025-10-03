@@ -22,9 +22,14 @@ class ProductController extends Controller
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
+                // Remove accents and normalize search
+                $normalizedSearch = $this->normalizeString($search);
+                
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('brand', 'like', "%{$search}%");
+                  ->orWhere('brand', 'like', "%{$search}%")
+                  ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, 'ã', 'a'), 'á', 'a'), 'à', 'a'), 'â', 'a'), 'é', 'e'), 'ê', 'e')) LIKE ?", ["%{$normalizedSearch}%"])
+                  ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(description, 'ã', 'a'), 'á', 'a'), 'à', 'a'), 'â', 'a'), 'é', 'e'), 'ê', 'e')) LIKE ?", ["%{$normalizedSearch}%"]);
             });
         }
 
@@ -70,5 +75,52 @@ class ProductController extends Controller
             'success' => true,
             'data' => $products
         ]);
+    }
+
+    public function searchSuggestions(Request $request): JsonResponse
+    {
+        $search = $request->get('q', '');
+        
+        if (strlen($search) < 2) {
+            return response()->json([
+                'success' => true,
+                'data' => []
+            ]);
+        }
+
+        $normalizedSearch = $this->normalizeString($search);
+        
+        $suggestions = Product::where('active', true)
+            ->where(function ($q) use ($search, $normalizedSearch) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, 'ã', 'a'), 'á', 'a'), 'à', 'a'), 'â', 'a'), 'é', 'e'), 'ê', 'e')) LIKE ?", ["%{$normalizedSearch}%"]);
+            })
+            ->select('id', 'name', 'images')
+            ->limit(5)
+            ->get()
+            ->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'image' => $product->images[0] ?? null
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $suggestions
+        ]);
+    }
+
+    private function normalizeString(string $string): string
+    {
+        $string = strtolower($string);
+        $string = str_replace(['ã', 'á', 'à', 'â', 'ä'], 'a', $string);
+        $string = str_replace(['é', 'ê', 'è', 'ë'], 'e', $string);
+        $string = str_replace(['í', 'î', 'ì', 'ï'], 'i', $string);
+        $string = str_replace(['õ', 'ó', 'ô', 'ò', 'ö'], 'o', $string);
+        $string = str_replace(['ú', 'û', 'ù', 'ü'], 'u', $string);
+        $string = str_replace(['ç'], 'c', $string);
+        return $string;
     }
 }

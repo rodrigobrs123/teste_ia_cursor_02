@@ -12,6 +12,8 @@ import Checkout from './pages/Checkout';
 import OrderSuccess from './pages/OrderSuccess';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentError from './pages/PaymentError';
+import Login from './pages/Login';
+import Register from './pages/Register';
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
                 <Route path="/order-success/:id" element={<OrderSuccess />} />
                 <Route path="/payment-success/:id" element={<PaymentSuccess />} />
                 <Route path="/payment-error/:id?" element={<PaymentError />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
               </Routes>
             </main>
             <Footer />
