@@ -17,6 +17,7 @@ const ProductDetail: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -41,11 +42,13 @@ const ProductDetail: React.FC = () => {
 
     try {
       setAddingToCart(true);
+      setError('');
       await addToCart(product.id, quantity);
-      // Você pode adicionar uma notificação de sucesso aqui
-    } catch (error) {
+      // Show success message
+      alert('Produto adicionado ao carrinho com sucesso!');
+    } catch (error: any) {
       console.error('Error adding to cart:', error);
-      // Você pode adicionar uma notificação de erro aqui
+      setError(error.message || 'Erro ao adicionar produto ao carrinho');
     } finally {
       setAddingToCart(false);
     }
@@ -218,6 +221,13 @@ const ProductDetail: React.FC = () => {
               </p>
             )}
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md">
+              {error}
+            </div>
+          )}
 
           {/* Quantity and Add to Cart */}
           {product.stock > 0 && (

@@ -46,11 +46,16 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const addToCart = async (productId: number, quantity: number) => {
     try {
       setLoading(true);
-      await cartService.add(productId, quantity);
-      await refreshCart();
-    } catch (error) {
+      const response = await cartService.add(productId, quantity);
+      if (response.data.success) {
+        await refreshCart();
+      } else {
+        throw new Error(response.data.message || 'Erro ao adicionar produto ao carrinho');
+      }
+    } catch (error: any) {
       console.error('Error adding to cart:', error);
-      throw error;
+      const errorMessage = error.response?.data?.message || error.message || 'Erro ao adicionar produto ao carrinho';
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }

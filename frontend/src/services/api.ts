@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { ApiResponse, PaginatedResponse, Category, Product, Cart, CartItem, Order, PaymentData } from '../types';
+import { ApiResponse, PaginatedResponse, Category, Product, Cart, CartItem, Order, PaymentData, User } from '../types';
+import { RegisterData } from '../contexts/AuthContext';
 
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api',
@@ -10,6 +11,20 @@ const api = axios.create({
   },
 });
 
+// Interceptor para adicionar token de autenticação
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Interceptor para tratar erros
 api.interceptors.response.use(
   (response) => response,
@@ -18,6 +33,21 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export const authService = {
+  register: (data: RegisterData) => api.post<ApiResponse<{ user: User; token: string }>>('/register', data),
+  
+  login: (data: { email: string; password: string }) => 
+    api.post<ApiResponse<{ user: User; token: string }>>('/login', data),
+  
+  logout: () => api.post<ApiResponse<void>>('/logout'),
+  
+  me: () => api.get<ApiResponse<User>>('/me'),
+  
+  updateProfile: (data: Partial<User>) => api.put<ApiResponse<User>>('/profile', data),
+  
+  getMyOrders: () => api.get<ApiResponse<Order[]>>('/my-orders'),
+};
 
 export const categoryService = {
   getAll: () => api.get<ApiResponse<Category[]>>('/categories'),

@@ -18,6 +18,14 @@ const Products: React.FC = () => {
     searchParams.get('category') ? Number(searchParams.get('category')) : undefined
   );
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+
+  // Update search term when URL changes
+  useEffect(() => {
+    const urlSearchTerm = searchParams.get('search') || '';
+    if (urlSearchTerm !== searchTerm) {
+      setSearchTerm(urlSearchTerm);
+    }
+  }, [searchParams]);
   const [sortBy, setSortBy] = useState(searchParams.get('sort_by') || 'name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(
     (searchParams.get('sort_order') as 'asc' | 'desc') || 'asc'
@@ -43,14 +51,22 @@ const Products: React.FC = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const params = {
-          category_id: selectedCategory,
-          search: searchTerm || undefined,
+        const params: any = {
           sort_by: sortBy,
           sort_order: sortOrder,
           page: currentPage,
           per_page: 12,
         };
+
+        if (selectedCategory) {
+          params.category_id = selectedCategory;
+        }
+
+        if (searchTerm && searchTerm.trim()) {
+          params.search = searchTerm.trim();
+        }
+
+        console.log('Fetching products with params:', params);
 
         const response = await productService.getAll(params);
         setProducts(response.data.data);
@@ -58,7 +74,7 @@ const Products: React.FC = () => {
         // Update URL params
         const newParams = new URLSearchParams();
         if (selectedCategory) newParams.set('category', selectedCategory.toString());
-        if (searchTerm) newParams.set('search', searchTerm);
+        if (searchTerm && searchTerm.trim()) newParams.set('search', searchTerm.trim());
         if (sortBy !== 'name') newParams.set('sort_by', sortBy);
         if (sortOrder !== 'asc') newParams.set('sort_order', sortOrder);
         if (currentPage !== 1) newParams.set('page', currentPage.toString());
@@ -66,6 +82,7 @@ const Products: React.FC = () => {
         setSearchParams(newParams);
       } catch (error) {
         console.error('Error fetching products:', error);
+        setProducts({ data: [], current_page: 1, last_page: 1, per_page: 12, total: 0 });
       } finally {
         setLoading(false);
       }

@@ -1,3 +1,20 @@
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  cpf?: string;
+  data_nascimento?: string;
+  telefone?: string;
+  uf?: string;
+  estado?: string;
+  endereco?: string;
+  complemento?: string;
+  cep?: string;
+  email_verified_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Category {
   id: number;
   name: string;
