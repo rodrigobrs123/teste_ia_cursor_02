@@ -28,6 +28,21 @@ const Header: React.FC = () => {
     fetchCategories();
   }, []);
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (showUserMenu && !target.closest('.user-menu-container')) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserMenu]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
@@ -99,29 +114,29 @@ const Header: React.FC = () => {
 
             {/* User Menu */}
             {isAuthenticated ? (
-              <div className="relative">
+              <div className="relative user-menu-container">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-2 p-2 text-gray-700 hover:text-primary-600"
+                  className="flex items-center space-x-2 p-2 text-gray-700 hover:text-primary-600 transition-colors"
                 >
                   <UserIcon className="h-6 w-6" />
                   <span className="hidden md:block text-sm font-medium">
-                    {user?.name?.split(' ')[0]}
+                    {user?.name?.split(' ')[0] || 'Usuário'}
                   </span>
                 </button>
                 
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
                     <Link
                       to="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                       onClick={() => setShowUserMenu(false)}
                     >
                       Minha Conta
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                     >
                       Sair
                     </button>
@@ -132,14 +147,14 @@ const Header: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Link
                   to="/login"
-                  className="text-sm font-medium text-gray-700 hover:text-primary-600"
+                  className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
                 >
                   Entrar
                 </Link>
                 <span className="text-gray-300">|</span>
                 <Link
                   to="/register"
-                  className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                  className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
                 >
                   Cadastrar
                 </Link>

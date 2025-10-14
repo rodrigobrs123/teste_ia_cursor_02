@@ -22,8 +22,16 @@ const Products: React.FC = () => {
   // Update search term when URL changes
   useEffect(() => {
     const urlSearchTerm = searchParams.get('search') || '';
+    const urlCategory = searchParams.get('category');
+    
     if (urlSearchTerm !== searchTerm) {
       setSearchTerm(urlSearchTerm);
+    }
+    
+    if (urlCategory && Number(urlCategory) !== selectedCategory) {
+      setSelectedCategory(Number(urlCategory));
+    } else if (!urlCategory && selectedCategory !== undefined) {
+      setSelectedCategory(undefined);
     }
   }, [searchParams]);
   const [sortBy, setSortBy] = useState(searchParams.get('sort_by') || 'name');
@@ -69,7 +77,13 @@ const Products: React.FC = () => {
         console.log('Fetching products with params:', params);
 
         const response = await productService.getAll(params);
-        setProducts(response.data.data);
+        
+        if (response.data.success) {
+          setProducts(response.data.data);
+        } else {
+          console.error('Failed to fetch products:', response.data.message);
+          setProducts({ data: [], current_page: 1, last_page: 1, per_page: 12, total: 0 });
+        }
 
         // Update URL params
         const newParams = new URLSearchParams();

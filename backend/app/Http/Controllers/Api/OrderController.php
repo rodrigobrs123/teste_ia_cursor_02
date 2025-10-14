@@ -67,7 +67,9 @@ class OrderController extends Controller
             $subtotal = $cartItems->sum(function ($item) {
                 return $item->getTotal();
             });
-            $shippingCost = 15.00; // Taxa fixa de frete
+            
+            // Frete grátis para compras acima de R$ 200
+            $shippingCost = $subtotal >= 200 ? 0 : 15.00;
             $total = $subtotal + $shippingCost;
 
             // Criar pedido
