@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCartIcon } from '@heroicons/react/24/outline';
+import { ShoppingCartIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { Product } from '../types';
 import { formatPrice } from '../utils/format';
 import { useCart } from '../contexts/CartContext';
@@ -11,17 +11,31 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
+  const [isAdding, setIsAdding] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
+  const [error, setError] = useState('');
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
+    if (product.stock === 0 || isAdding) return;
+    
     try {
+      setIsAdding(true);
+      setError('');
       await addToCart(product.id, 1);
-      // Você pode adicionar uma notificação aqui
-    } catch (error) {
+      
+      // Show success feedback
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2000);
+      
+    } catch (error: any) {
       console.error('Error adding to cart:', error);
-      // Você pode adicionar uma notificação de erro aqui
+      setError(error.message);
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -83,12 +97,39 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           
           <button
             onClick={handleAddToCart}
-            disabled={product.stock === 0}
-            className="bg-primary-600 text-white p-2 rounded-md hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            disabled={product.stock === 0 || isAdding}
+            className={`p-2 rounded-md transition-all duration-200 ${
+              addedToCart
+                ? 'bg-green-600 text-white'
+                : product.stock === 0 || isAdding
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-primary-600 text-white hover:bg-primary-700'
+            }`}
+            title={
+              product.stock === 0 
+                ? 'Produto fora de estoque' 
+                : isAdding 
+                ? 'Adicionando...' 
+                : addedToCart 
+                ? 'Adicionado ao carrinho!' 
+                : 'Adicionar ao carrinho'
+            }
           >
-            <ShoppingCartIcon className="h-5 w-5" />
+            {isAdding ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+            ) : addedToCart ? (
+              <CheckIcon className="h-5 w-5" />
+            ) : (
+              <ShoppingCartIcon className="h-5 w-5" />
+            )}
           </button>
         </div>
+        
+        {error && (
+          <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded">
+            {error}
+          </div>
+        )}
       </div>
     </Link>
   );

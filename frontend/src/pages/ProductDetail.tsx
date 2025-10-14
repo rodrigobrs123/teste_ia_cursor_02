@@ -44,8 +44,16 @@ const ProductDetail: React.FC = () => {
       setAddingToCart(true);
       setError('');
       await addToCart(product.id, quantity);
-      // Show success message
-      alert('Produto adicionado ao carrinho com sucesso!');
+      
+      // Show success message with better UX
+      const successMessage = `${quantity} ${quantity === 1 ? 'item adicionado' : 'itens adicionados'} ao carrinho!`;
+      
+      // You could replace this alert with a toast notification
+      alert(successMessage);
+      
+      // Reset quantity to 1 after successful addition
+      setQuantity(1);
+      
     } catch (error: any) {
       console.error('Error adding to cart:', error);
       setError(error.message || 'Erro ao adicionar produto ao carrinho');

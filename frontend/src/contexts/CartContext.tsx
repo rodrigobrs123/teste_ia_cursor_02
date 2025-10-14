@@ -5,7 +5,7 @@ import { cartService } from '../services/api';
 interface CartContextType {
   cart: Cart | null;
   loading: boolean;
-  addToCart: (productId: number, quantity: number) => Promise<void>;
+  addToCart: (productId: number, quantity: number) => Promise<any>;
   updateCartItem: (itemId: number, quantity: number) => Promise<void>;
   removeFromCart: (itemId: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -35,9 +35,17 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       setLoading(true);
       const response = await cartService.get();
       setCart(response.data.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching cart:', error);
+      // Initialize empty cart if there's an error
       setCart({ items: [], total: 0, count: 0 });
+      
+      // Log the specific error for debugging
+      if (error.response?.status === 401) {
+        console.warn('Cart: Authentication required');
+      } else if (error.response?.status === 500) {
+        console.error('Cart: Server error');
+      }
     } finally {
       setLoading(false);
     }
@@ -47,14 +55,34 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       const response = await cartService.add(productId, quantity);
+      
       if (response.data.success) {
         await refreshCart();
+        return response.data;
       } else {
         throw new Error(response.data.message || 'Erro ao adicionar produto ao carrinho');
       }
     } catch (error: any) {
       console.error('Error adding to cart:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Erro ao adicionar produto ao carrinho';
+      
+      let errorMessage = 'Erro ao adicionar produto ao carrinho';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        // Bad request - usually validation or stock issues
+        errorMessage = error.response.data?.message || 'Produto indisponível ou dados inválidos';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Produto não encontrado';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Erro interno do servidor. Tente novamente.';
+      }
+      
       throw new Error(errorMessage);
     } finally {
       setLoading(false);
