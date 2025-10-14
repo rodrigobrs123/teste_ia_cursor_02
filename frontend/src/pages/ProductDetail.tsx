@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeftIcon, HeartIcon, ShareIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import Loading from '../components/Loading';
@@ -11,12 +11,14 @@ import { useCart } from '../contexts/CartContext';
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [buyingNow, setBuyingNow] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -59,6 +61,27 @@ const ProductDetail: React.FC = () => {
       setError(error.message || 'Erro ao adicionar produto ao carrinho');
     } finally {
       setAddingToCart(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!product) return;
+
+    try {
+      setBuyingNow(true);
+      setError('');
+      
+      // Add product to cart first
+      await addToCart(product.id, quantity);
+      
+      // Navigate to cart page for checkout
+      navigate('/cart');
+      
+    } catch (error: any) {
+      console.error('Error during buy now:', error);
+      setError(error.message || 'Erro ao processar compra');
+    } finally {
+      setBuyingNow(false);
     }
   };
 
@@ -263,14 +286,18 @@ const ProductDetail: React.FC = () => {
 
               <button
                 onClick={handleAddToCart}
-                disabled={addingToCart}
+                disabled={addingToCart || buyingNow}
                 className="w-full bg-primary-600 text-white py-3 px-6 rounded-md font-medium hover:bg-primary-700 disabled:bg-primary-400 disabled:cursor-not-allowed transition-colors"
               >
                 {addingToCart ? 'Adicionando...' : 'Adicionar ao Carrinho'}
               </button>
 
-              <button className="w-full bg-green-600 text-white py-3 px-6 rounded-md font-medium hover:bg-green-700 transition-colors">
-                Comprar Agora
+              <button 
+                onClick={handleBuyNow}
+                disabled={buyingNow || addingToCart}
+                className="w-full bg-green-600 text-white py-3 px-6 rounded-md font-medium hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {buyingNow ? 'Processando...' : 'Comprar Agora'}
               </button>
             </div>
           )}
