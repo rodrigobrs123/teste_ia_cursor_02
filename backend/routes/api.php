@@ -28,8 +28,8 @@ Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/featured', [ProductController::class, 'featured']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
 
-// Carrinho - adicionar middleware 'web' para habilitar sessões
-Route::middleware(['web', 'api'])->group(function () {
+// Carrinho - usar apenas middleware api com sessões habilitadas
+Route::middleware(['api'])->group(function () {
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'store']);
     Route::put('/cart/{cartItem}', [CartController::class, 'update']);
@@ -37,8 +37,8 @@ Route::middleware(['web', 'api'])->group(function () {
     Route::delete('/cart', [CartController::class, 'clear']);
 });
 
-// Pedidos
-Route::middleware(['web', 'api'])->group(function () {
+// Pedidos - usar apenas middleware api com sessões habilitadas
+Route::middleware(['api'])->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
 });
