@@ -29,6 +29,7 @@ class User extends Authenticatable
         'uf',
         'estado',
         'endereco',
+        'bairro',
         'complemento',
         'cep',
     ];

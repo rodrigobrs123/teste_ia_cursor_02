@@ -18,6 +18,7 @@ const Register: React.FC = () => {
     uf: '',
     estado: '',
     endereco: '',
+    bairro: '',
     complemento: '',
     cep: '',
   });
@@ -354,7 +355,7 @@ const Register: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="md:col-span-2">
+                <div>
                   <label htmlFor="endereco" className="block text-sm font-medium text-gray-700">
                     Endereço *
                   </label>
@@ -367,6 +368,22 @@ const Register: React.FC = () => {
                     onChange={handleChange}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Rua, número"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="bairro" className="block text-sm font-medium text-gray-700">
+                    Bairro *
+                  </label>
+                  <input
+                    id="bairro"
+                    name="bairro"
+                    type="text"
+                    required
+                    value={formData.bairro}
+                    onChange={handleChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Nome do bairro"
                   />
                 </div>
 

@@ -19,13 +19,17 @@ class Order extends Model
         'status',
         'payment_status',
         'payment_method',
-        'payment_transaction_id'
+        'payment_transaction_id',
+        'cancellation_reason',
+        'cancelled_at',
+        'refund_status'
     ];
 
     protected $casts = [
         'subtotal' => 'decimal:2',
         'shipping_cost' => 'decimal:2',
-        'total' => 'decimal:2'
+        'total' => 'decimal:2',
+        'cancelled_at' => 'datetime'
     ];
 
     public function orderItems(): HasMany

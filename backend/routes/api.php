@@ -17,6 +17,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
     Route::get('/my-orders', [AuthController::class, 'orders']);
+    Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
 });
 
 // Categorias
@@ -27,6 +28,11 @@ Route::get('/categories/{category}', [CategoryController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/featured', [ProductController::class, 'featured']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
+
+// CSRF token endpoint
+Route::get('/csrf-token', function () {
+    return response()->json(['csrf_token' => csrf_token()]);
+});
 
 // Carrinho - usar apenas middleware api com sessões habilitadas
 Route::middleware(['api'])->group(function () {

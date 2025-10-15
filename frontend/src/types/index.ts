@@ -8,6 +8,7 @@ export interface User {
   uf?: string;
   estado?: string;
   endereco?: string;
+  bairro?: string;
   complemento?: string;
   cep?: string;
   email_verified_at?: string;

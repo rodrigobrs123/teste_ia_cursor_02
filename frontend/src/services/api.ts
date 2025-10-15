@@ -89,6 +89,9 @@ export const orderService = {
     api.post<ApiResponse<{ order: Order; payment: any }>>('/orders', paymentData),
   
   getById: (id: number) => api.get<ApiResponse<Order>>(`/orders/${id}`),
+  
+  cancel: (orderId: number, reason: string) => 
+    api.post<ApiResponse<Order>>(`/orders/${orderId}/cancel`, { reason }),
 };
 
 export default api;
