@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Cart, CartItem } from '../types';
 import { cartService } from '../services/api';
+import api from '../services/api';
 
 interface CartContextType {
   cart: Cart | null;
@@ -33,6 +34,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const refreshCart = async () => {
     try {
       setLoading(true);
+      
+      // Initialize session first
+      await api.get('/csrf-token');
+      
       const response = await cartService.get();
       setCart(response.data.data);
     } catch (error: any) {
@@ -54,6 +59,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const addToCart = async (productId: number, quantity: number) => {
     try {
       setLoading(true);
+      
+      // Initialize session first
+      await api.get('/csrf-token');
+      
       const response = await cartService.add(productId, quantity);
       
       if (response.data.success) {

@@ -23,6 +23,7 @@ export interface RegisterData {
   uf: string;
   estado: string;
   endereco: string;
+  bairro: string;
   complemento?: string;
   cep: string;
 }

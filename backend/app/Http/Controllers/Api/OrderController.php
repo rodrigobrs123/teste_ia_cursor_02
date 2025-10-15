@@ -172,6 +172,82 @@ class OrderController extends Controller
         ]);
     }
 
+    public function cancel(Request $request, Order $order): JsonResponse
+    {
+        $request->validate([
+            'reason' => 'required|string|max:500'
+        ]);
+
+        // Check if order belongs to the authenticated user
+        $user = $request->user();
+        if (!$user || $order->customer_email !== $user->email) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pedido não encontrado'
+            ], 404);
+        }
+
+        // Check if order can be cancelled (within 7 days and not already shipped/delivered)
+        $orderDate = $order->created_at;
+        $daysSinceOrder = $orderDate->diffInDays(now());
+        
+        if ($daysSinceOrder > 7) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pedidos só podem ser cancelados até 7 dias após a data da compra'
+            ], 400);
+        }
+
+        if (in_array($order->status, ['shipped', 'delivered', 'cancelled'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este pedido não pode ser cancelado'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update order status
+            $order->update([
+                'status' => 'cancelled',
+                'cancellation_reason' => $request->reason,
+                'cancelled_at' => now()
+            ]);
+
+            // Restore stock for all items
+            foreach ($order->orderItems as $orderItem) {
+                if ($orderItem->product) {
+                    $orderItem->product->increment('stock', $orderItem->quantity);
+                }
+            }
+
+            // If payment was processed, initiate refund process
+            if ($order->payment_status === 'paid') {
+                $order->update(['refund_status' => 'requested']);
+                
+                // Here you would integrate with payment provider's refund API
+                // For now, we'll just mark it as requested
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pedido cancelado com sucesso. Se o pagamento foi processado, o reembolso será processado em até 5 dias úteis.',
+                'data' => $order->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao cancelar pedido'
+            ], 500);
+        }
+    }
+
     public function paymentCallback(Request $request): JsonResponse
     {
         // Webhook do NuvemPago

@@ -12,6 +12,11 @@ class CartController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        // Start session if not already started
+        if (!$request->session()->isStarted()) {
+            $request->session()->start();
+        }
+        
         $sessionId = $request->session()->getId();
         
         $cartItems = CartItem::with('product.category')
@@ -40,6 +45,12 @@ class CartController extends Controller
         ]);
 
         $product = Product::findOrFail($request->product_id);
+        
+        // Start session if not already started
+        if (!$request->session()->isStarted()) {
+            $request->session()->start();
+        }
+        
         $sessionId = $request->session()->getId();
 
         // Verificar estoque
@@ -93,6 +104,11 @@ class CartController extends Controller
             'quantity' => 'required|integer|min:1'
         ]);
 
+        // Start session if not already started
+        if (!$request->session()->isStarted()) {
+            $request->session()->start();
+        }
+        
         $sessionId = $request->session()->getId();
 
         if ($cartItem->session_id !== $sessionId) {
@@ -126,6 +142,11 @@ class CartController extends Controller
 
     public function destroy(Request $request, CartItem $cartItem): JsonResponse
     {
+        // Start session if not already started
+        if (!$request->session()->isStarted()) {
+            $request->session()->start();
+        }
+        
         $sessionId = $request->session()->getId();
 
         if ($cartItem->session_id !== $sessionId) {
@@ -145,6 +166,11 @@ class CartController extends Controller
 
     public function clear(Request $request): JsonResponse
     {
+        // Start session if not already started
+        if (!$request->session()->isStarted()) {
+            $request->session()->start();
+        }
+        
         $sessionId = $request->session()->getId();
 
         CartItem::where('session_id', $sessionId)->delete();

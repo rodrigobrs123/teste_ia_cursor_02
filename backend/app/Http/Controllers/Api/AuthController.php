@@ -24,6 +24,7 @@ class AuthController extends Controller
             'uf' => 'required|string|size:2',
             'estado' => 'required|string|max:100',
             'endereco' => 'required|string|max:500',
+            'bairro' => 'required|string|max:200',
             'complemento' => 'nullable|string|max:200',
             'cep' => 'required|string|size:9',
         ]);
@@ -39,6 +40,7 @@ class AuthController extends Controller
                 'uf' => $request->uf,
                 'estado' => $request->estado,
                 'endereco' => $request->endereco,
+                'bairro' => $request->bairro,
                 'complemento' => $request->complemento,
                 'cep' => $request->cep,
             ]);
@@ -118,6 +120,7 @@ class AuthController extends Controller
             'uf' => 'sometimes|string|size:2',
             'estado' => 'sometimes|string|max:100',
             'endereco' => 'sometimes|string|max:500',
+            'bairro' => 'sometimes|string|max:200',
             'complemento' => 'nullable|string|max:200',
             'cep' => 'sometimes|string|size:9',
         ]);
@@ -125,7 +128,7 @@ class AuthController extends Controller
         try {
             $user->update($request->only([
                 'name', 'email', 'cpf', 'data_nascimento', 'telefone',
-                'uf', 'estado', 'endereco', 'complemento', 'cep'
+                'uf', 'estado', 'endereco', 'bairro', 'complemento', 'cep'
             ]));
 
             return response()->json([
