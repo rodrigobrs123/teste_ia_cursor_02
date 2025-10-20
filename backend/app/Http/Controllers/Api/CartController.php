@@ -12,29 +12,45 @@ class CartController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        // Start session if not already started
-        if (!$request->session()->isStarted()) {
-            $request->session()->start();
+        try {
+            // Start session if not already started
+            if (!$request->session()->isStarted()) {
+                $request->session()->start();
+            }
+            
+            $sessionId = $request->session()->getId();
+            
+            if (!$sessionId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não foi possível inicializar a sessão'
+                ], 400);
+            }
+            
+            $cartItems = CartItem::with('product.category')
+                ->where('session_id', $sessionId)
+                ->get();
+
+            $total = $cartItems->sum(function ($item) {
+                return $item->getTotal();
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'items' => $cartItems,
+                    'total' => $total,
+                    'count' => $cartItems->sum('quantity')
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching cart: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao carregar carrinho'
+            ], 500);
         }
-        
-        $sessionId = $request->session()->getId();
-        
-        $cartItems = CartItem::with('product.category')
-            ->where('session_id', $sessionId)
-            ->get();
-
-        $total = $cartItems->sum(function ($item) {
-            return $item->getTotal();
-        });
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'items' => $cartItems,
-                'total' => $total,
-                'count' => $cartItems->sum('quantity')
-            ]
-        ]);
     }
 
     public function store(Request $request): JsonResponse

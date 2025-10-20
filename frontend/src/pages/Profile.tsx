@@ -44,11 +44,21 @@ const Profile: React.FC = () => {
 
   const handleEditClick = () => {
     setIsEditing(true);
+    
+    // Convert datetime to date format for input
+    let formattedDate = '';
+    if (user?.data_nascimento) {
+      const date = new Date(user.data_nascimento);
+      if (!isNaN(date.getTime())) {
+        formattedDate = date.toISOString().split('T')[0];
+      }
+    }
+    
     setEditForm({
       name: user?.name || '',
       email: user?.email || '',
       cpf: user?.cpf || '',
-      data_nascimento: user?.data_nascimento || '',
+      data_nascimento: formattedDate,
       telefone: user?.telefone || '',
       uf: user?.uf || '',
       estado: user?.estado || '',

@@ -8,7 +8,7 @@ import { orderService } from '../services/api';
 import { PaymentData } from '../types';
 
 const Checkout: React.FC = () => {
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, loading: cartLoading } = useCart();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'shipping' | 'payment' | 'review'>('shipping');
@@ -33,6 +33,15 @@ const Checkout: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Show loading while cart is being fetched
+  if (cartLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Loading text="Carregando carrinho..." />
+      </div>
+    );
+  }
 
   if (!cart || cart.items.length === 0) {
     navigate('/cart');
@@ -105,6 +114,13 @@ const Checkout: React.FC = () => {
     try {
       setLoading(true);
 
+      // Validate cart one more time before submitting
+      if (!cart || cart.items.length === 0) {
+        alert('Carrinho está vazio. Adicione produtos antes de finalizar o pedido.');
+        navigate('/products');
+        return;
+      }
+
       const orderData: PaymentData = {
         ...shippingData,
         payment_method: paymentData.payment_method,
@@ -118,6 +134,8 @@ const Checkout: React.FC = () => {
         };
       }
 
+      console.log('Submitting order with data:', orderData);
+
       const response = await orderService.create(orderData);
       
       if (response.data.success) {
@@ -128,10 +146,35 @@ const Checkout: React.FC = () => {
             payment: response.data.data.payment 
           }
         });
+      } else {
+        alert(response.data.message || 'Erro ao processar pedido');
       }
     } catch (error: any) {
       console.error('Error creating order:', error);
-      alert(error.response?.data?.message || 'Erro ao processar pedido');
+      
+      let errorMessage = 'Erro ao processar pedido';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        if (error.response.data?.message?.includes('Carrinho está vazio')) {
+          errorMessage = 'Carrinho está vazio. Adicione produtos antes de finalizar o pedido.';
+          navigate('/products');
+        } else {
+          errorMessage = error.response.data?.message || 'Dados inválidos. Verifique as informações e tente novamente.';
+        }
+      } else if (error.response?.status === 422) {
+        errorMessage = 'Dados inválidos. Verifique as informações do formulário.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Erro interno do servidor. Tente novamente em alguns minutos.';
+      }
+      
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }

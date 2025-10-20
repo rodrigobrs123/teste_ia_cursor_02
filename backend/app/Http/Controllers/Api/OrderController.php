@@ -36,7 +36,19 @@ class OrderController extends Controller
             'card_data.cvv' => 'required_if:payment_method,credit_card|string|size:3'
         ]);
 
+        // Start session if not already started
+        if (!$request->session()->isStarted()) {
+            $request->session()->start();
+        }
+        
         $sessionId = $request->session()->getId();
+
+        if (!$sessionId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Não foi possível inicializar a sessão. Tente recarregar a página.'
+            ], 400);
+        }
 
         // Buscar itens do carrinho
         $cartItems = CartItem::with('product')
@@ -46,7 +58,7 @@ class OrderController extends Controller
         if ($cartItems->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Carrinho está vazio'
+                'message' => 'Carrinho está vazio. Adicione produtos antes de finalizar o pedido.'
             ], 400);
         }
 

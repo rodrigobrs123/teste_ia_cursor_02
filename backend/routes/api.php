@@ -34,6 +34,19 @@ Route::get('/csrf-token', function () {
     return response()->json(['csrf_token' => csrf_token()]);
 });
 
+// Debug session endpoint
+Route::get('/debug/session', function (Illuminate\Http\Request $request) {
+    if (!$request->session()->isStarted()) {
+        $request->session()->start();
+    }
+    
+    return response()->json([
+        'session_id' => $request->session()->getId(),
+        'session_started' => $request->session()->isStarted(),
+        'session_data' => $request->session()->all()
+    ]);
+});
+
 // Carrinho - usar apenas middleware api com sessões habilitadas
 Route::middleware(['api'])->group(function () {
     Route::get('/cart', [CartController::class, 'index']);
