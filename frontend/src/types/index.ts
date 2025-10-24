@@ -126,4 +126,5 @@ export interface PaymentData {
     expiry_year: number;
     cvv: string;
   };
+  card_token?: string;
 }

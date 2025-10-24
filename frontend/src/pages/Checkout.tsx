@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreditCardIcon, DevicePhoneMobileIcon, DocumentIcon } from '@heroicons/react/24/outline';
 import Loading from '../components/Loading';
@@ -6,12 +6,15 @@ import { useCart } from '../contexts/CartContext';
 import { formatPrice } from '../utils/format';
 import { orderService } from '../services/api';
 import { PaymentData } from '../types';
+import mercadoPagoService from '../services/mercadopago';
 
 const Checkout: React.FC = () => {
   const { cart, clearCart, loading: cartLoading } = useCart();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'shipping' | 'payment' | 'review'>('shipping');
+  const [mpInitialized, setMpInitialized] = useState(false);
+  const [mpLoading, setMpLoading] = useState(true);
 
   // Form data
   const [shippingData, setShippingData] = useState({
@@ -34,11 +37,27 @@ const Checkout: React.FC = () => {
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Show loading while cart is being fetched
-  if (cartLoading) {
+  // Initialize Mercado Pago
+  useEffect(() => {
+    const initMercadoPago = async () => {
+      try {
+        await mercadoPagoService.initialize();
+        setMpInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize Mercado Pago:', error);
+      } finally {
+        setMpLoading(false);
+      }
+    };
+
+    initMercadoPago();
+  }, []);
+
+  // Show loading while cart is being fetched or MP is initializing
+  if (cartLoading || mpLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Loading text="Carregando carrinho..." />
+        <Loading text={cartLoading ? "Carregando carrinho..." : "Inicializando Mercado Pago..."} />
       </div>
     );
   }
@@ -79,6 +98,8 @@ const Checkout: React.FC = () => {
     if (paymentData.payment_method === 'credit_card') {
       if (!paymentData.card_data.number.trim()) {
         newErrors.card_number = 'Número do cartão é obrigatório';
+      } else if (!mercadoPagoService.validateCardNumber(paymentData.card_data.number)) {
+        newErrors.card_number = 'Número do cartão inválido';
       }
 
       if (!paymentData.card_data.holder_name.trim()) {
@@ -93,8 +114,14 @@ const Checkout: React.FC = () => {
         newErrors.expiry_year = 'Ano é obrigatório';
       }
 
+      if (!mercadoPagoService.validateExpiryDate(paymentData.card_data.expiry_month, paymentData.card_data.expiry_year)) {
+        newErrors.expiry_date = 'Data de validade inválida';
+      }
+
       if (!paymentData.card_data.cvv.trim()) {
         newErrors.cvv = 'CVV é obrigatório';
+      } else if (!mercadoPagoService.validateCVV(paymentData.card_data.cvv)) {
+        newErrors.cvv = 'CVV inválido';
       }
     }
 
@@ -127,11 +154,23 @@ const Checkout: React.FC = () => {
       };
 
       if (paymentData.payment_method === 'credit_card') {
-        orderData.card_data = {
-          ...paymentData.card_data,
-          expiry_month: Number(paymentData.card_data.expiry_month),
-          expiry_year: Number(paymentData.card_data.expiry_year),
-        };
+        // Create card token with Mercado Pago
+        if (!mpInitialized) {
+          throw new Error('Mercado Pago não foi inicializado. Recarregue a página e tente novamente.');
+        }
+
+        try {
+          const cardToken = await mercadoPagoService.createCardToken(paymentData.card_data);
+          orderData.card_token = cardToken.id;
+          orderData.card_data = {
+            ...paymentData.card_data,
+            expiry_month: Number(paymentData.card_data.expiry_month),
+            expiry_year: Number(paymentData.card_data.expiry_year),
+          };
+        } catch (tokenError) {
+          console.error('Error creating card token:', tokenError);
+          throw new Error('Erro ao processar dados do cartão. Verifique as informações e tente novamente.');
+        }
       }
 
       console.log('Submitting order with data:', orderData);
@@ -343,14 +382,18 @@ const Checkout: React.FC = () => {
                     <input
                       type="text"
                       value={paymentData.card_data.number}
-                      onChange={(e) => setPaymentData({
-                        ...paymentData,
-                        card_data: { ...paymentData.card_data, number: e.target.value }
-                      })}
+                      onChange={(e) => {
+                        const formattedNumber = mercadoPagoService.formatCardNumber(e.target.value);
+                        setPaymentData({
+                          ...paymentData,
+                          card_data: { ...paymentData.card_data, number: formattedNumber }
+                        });
+                      }}
                       className={`w-full px-3 py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500 ${
                         errors.card_number ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="1234 5678 9012 3456"
+                      maxLength={19}
                     />
                     {errors.card_number && (
                       <p className="text-red-500 text-sm mt-1">{errors.card_number}</p>
@@ -445,8 +488,14 @@ const Checkout: React.FC = () => {
                         placeholder="123"
                         maxLength={3}
                       />
+                      {errors.cvv && (
+                        <p className="text-red-500 text-sm mt-1">{errors.cvv}</p>
+                      )}
                     </div>
                   </div>
+                  {errors.expiry_date && (
+                    <p className="text-red-500 text-sm mt-1">{errors.expiry_date}</p>
+                  )}
                 </div>
               )}
 
