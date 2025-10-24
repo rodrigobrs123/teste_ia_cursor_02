@@ -62,3 +62,4 @@ Route::middleware(['api'])->group(function () {
     Route::get('/orders/{order}', [OrderController::class, 'show']);
 });
 Route::post('/orders/payment-callback', [OrderController::class, 'paymentCallback']);
+Route::get('/mercadopago/config', [OrderController::class, 'getMercadoPagoConfig']);

@@ -6,18 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Services\NuvemPagoService;
+use App\Services\MercadoPagoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
-    protected $nuvemPagoService;
+    protected $mercadoPagoService;
 
-    public function __construct(NuvemPagoService $nuvemPagoService)
+    public function __construct(MercadoPagoService $mercadoPagoService)
     {
-        $this->nuvemPagoService = $nuvemPagoService;
+        $this->mercadoPagoService = $mercadoPagoService;
     }
 
     public function store(Request $request): JsonResponse
@@ -33,7 +33,8 @@ class OrderController extends Controller
             'card_data.holder_name' => 'required_if:payment_method,credit_card|string',
             'card_data.expiry_month' => 'required_if:payment_method,credit_card|integer|between:1,12',
             'card_data.expiry_year' => 'required_if:payment_method,credit_card|integer|min:2024',
-            'card_data.cvv' => 'required_if:payment_method,credit_card|string|size:3'
+            'card_data.cvv' => 'required_if:payment_method,credit_card|string|size:3',
+            'card_token' => 'nullable|string'
         ]);
 
         // Start session if not already started
@@ -129,9 +130,12 @@ class OrderController extends Controller
 
             if ($request->payment_method === 'credit_card') {
                 $paymentData['card_data'] = $request->card_data;
+                if ($request->has('card_token')) {
+                    $paymentData['card_token'] = $request->card_token;
+                }
             }
 
-            $paymentResult = $this->nuvemPagoService->processPayment($paymentData);
+            $paymentResult = $this->mercadoPagoService->processPayment($paymentData);
 
             if ($paymentResult['success']) {
                 $order->update([
@@ -262,22 +266,45 @@ class OrderController extends Controller
 
     public function paymentCallback(Request $request): JsonResponse
     {
-        // Webhook do NuvemPago
+        // Webhook do Mercado Pago
         $data = $request->all();
 
-        if (isset($data['order_id']) && isset($data['status'])) {
-            $order = Order::where('order_number', $data['order_id'])->first();
-
-            if ($order) {
-                $order->update([
-                    'payment_status' => $data['status'] === 'approved' ? 'paid' : 'failed',
-                    'status' => $data['status'] === 'approved' ? 'processing' : 'cancelled'
-                ]);
-
-                return response()->json(['success' => true]);
+        // Mercado Pago envia diferentes tipos de notificações
+        if (isset($data['type']) && $data['type'] === 'payment') {
+            $paymentId = $data['data']['id'] ?? null;
+            
+            if ($paymentId) {
+                $paymentStatus = $this->mercadoPagoService->checkPaymentStatus($paymentId);
+                
+                if ($paymentStatus['success']) {
+                    // Buscar pedido pelo transaction_id
+                    $order = Order::where('payment_transaction_id', $paymentId)->first();
+                    
+                    if ($order) {
+                        $newStatus = $paymentStatus['status'] === 'approved' ? 'paid' : 
+                                   ($paymentStatus['status'] === 'rejected' ? 'failed' : 'pending');
+                        
+                        $order->update([
+                            'payment_status' => $newStatus,
+                            'status' => $newStatus === 'paid' ? 'processing' : 
+                                      ($newStatus === 'failed' ? 'cancelled' : 'pending')
+                        ]);
+                    }
+                }
             }
         }
 
-        return response()->json(['success' => false], 400);
+        return response()->json(['success' => true]);
+    }
+
+    public function getMercadoPagoConfig(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'public_key' => $this->mercadoPagoService->getPublicKey(),
+                'sandbox' => config('services.mercadopago.sandbox', true)
+            ]
+        ]);
     }
 }

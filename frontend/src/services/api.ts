@@ -100,4 +100,8 @@ export const orderService = {
     api.post<ApiResponse<Order>>(`/orders/${orderId}/cancel`, { reason }),
 };
 
+export const mercadoPagoService = {
+  getConfig: () => api.get<ApiResponse<{ public_key: string; sandbox: boolean }>>('/mercadopago/config'),
+};
+
 export default api;
