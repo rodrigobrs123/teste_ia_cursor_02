@@ -10,7 +10,7 @@ import { useCart } from '../contexts/CartContext';
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { addToCart } = useCart();
+  const { addToCart, refreshCart } = useCart();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,8 +74,14 @@ const ProductDetail: React.FC = () => {
       // Add product to cart first
       await addToCart(product.id, quantity);
       
-      // Navigate to cart page for checkout
-      navigate('/cart');
+      // Ensure cart is refreshed before navigating
+      await refreshCart();
+      
+      // Add a small delay to ensure cart state is properly updated
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Navigate directly to checkout page
+      navigate('/checkout');
       
     } catch (error: any) {
       console.error('Error during buy now:', error);

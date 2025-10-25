@@ -62,7 +62,17 @@ const Checkout: React.FC = () => {
     );
   }
 
-  if (!cart || cart.items.length === 0) {
+  // If cart is null, it's still loading, so show loading state
+  if (cart === null) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Loading text="Carregando carrinho..." />
+      </div>
+    );
+  }
+
+  // Only redirect to cart if we're sure the cart is loaded and empty
+  if (cart.items.length === 0) {
     navigate('/cart');
     return null;
   }
