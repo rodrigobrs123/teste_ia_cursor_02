@@ -41,6 +41,11 @@ class MercadoPagoService {
       // Aguarda o carregamento do SDK, caso ainda não esteja disponível
       await this.waitForMercadoPago();
 
+      // Verifica se a configuração foi carregada corretamente
+      if (!this.config) {
+        throw new Error('MercadoPago configuration is not available');
+      }
+
       // Inicializa o SDK
       this.mp = new window.MercadoPago(this.config.public_key, {
         locale: 'pt-BR'
