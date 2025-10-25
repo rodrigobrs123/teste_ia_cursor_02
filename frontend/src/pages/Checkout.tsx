@@ -53,6 +53,14 @@ const Checkout: React.FC = () => {
     initMercadoPago();
   }, []);
 
+  // Use useEffect to handle navigation to avoid state updates during render
+  useEffect(() => {
+    if (cart && cart.items && cart.items.length === 0) {
+      console.log('Cart is empty, redirecting to cart page');
+      navigate('/cart');
+    }
+  }, [cart, navigate]);
+
   // Show loading while cart is being fetched or MP is initializing
   if (cartLoading || mpLoading) {
     return (
@@ -70,14 +78,6 @@ const Checkout: React.FC = () => {
       </div>
     );
   }
-
-  // Use useEffect to handle navigation to avoid state updates during render
-  useEffect(() => {
-    if (cart && cart.items && cart.items.length === 0) {
-      console.log('Cart is empty, redirecting to cart page');
-      navigate('/cart');
-    }
-  }, [cart, navigate]);
 
   // If cart is empty, show loading while navigating
   if (cart && cart.items && cart.items.length === 0) {
