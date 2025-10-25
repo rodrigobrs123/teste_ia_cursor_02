@@ -223,6 +223,9 @@ class MercadoPagoService
 
     public function getPublicKey(): string
     {
+        if (empty($this->publicKey)) {
+            throw new \Exception('MercadoPago public key is not configured. Please check your environment variables.');
+        }
         return $this->publicKey;
     }
 

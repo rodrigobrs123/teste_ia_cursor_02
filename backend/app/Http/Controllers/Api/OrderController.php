@@ -299,12 +299,30 @@ class OrderController extends Controller
 
     public function getMercadoPagoConfig(): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'public_key' => $this->mercadoPagoService->getPublicKey(),
-                'sandbox' => config('services.mercadopago.sandbox', true)
-            ]
-        ]);
+        try {
+            $publicKey = $this->mercadoPagoService->getPublicKey();
+            
+            if (empty($publicKey)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'MercadoPago configuration is not available. Please contact support.'
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'public_key' => $publicKey,
+                    'sandbox' => config('services.mercadopago.sandbox', true)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error getting MercadoPago config: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load payment configuration. Please try again later.'
+            ], 500);
+        }
     }
 }

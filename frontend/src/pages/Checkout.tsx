@@ -72,7 +72,8 @@ const Checkout: React.FC = () => {
   }
 
   // Only redirect to cart if we're sure the cart is loaded and empty
-  if (cart.items.length === 0) {
+  if (cart && cart.items && cart.items.length === 0) {
+    console.log('Cart is empty, redirecting to cart page');
     navigate('/cart');
     return null;
   }
