@@ -30,21 +30,26 @@ class MercadoPagoService {
     try {
       // Get Mercado Pago configuration from backend
       const response = await fetch(`${process.env.REACT_APP_API_URL}/mercadopago/config`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const result = await response.json();
       
       if (!result.success) {
-        throw new Error('Failed to get Mercado Pago configuration');
+        throw new Error(result.message || 'Failed to get Mercado Pago configuration');
       }
 
       this.config = result.data;
 
+      // Verify configuration data
+      if (!this.config || !this.config.public_key) {
+        throw new Error('Invalid MercadoPago configuration received from server');
+      }
+
       // Aguarda o carregamento do SDK, caso ainda não esteja disponível
       await this.waitForMercadoPago();
-
-      // Verifica se a configuração foi carregada corretamente
-      if (!this.config) {
-        throw new Error('MercadoPago configuration is not available');
-      }
 
       // Inicializa o SDK
       this.mp = new window.MercadoPago(this.config.public_key, {

@@ -37,20 +37,34 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       
       // Initialize session first by making a simple request
       try {
-        await api.get('/csrf-token');
+        const csrfResponse = await api.get('/csrf-token');
+        console.log('CSRF token initialized:', csrfResponse.data);
       } catch (csrfError) {
         console.warn('CSRF token request failed, continuing anyway:', csrfError);
       }
       
       const response = await cartService.get();
+      console.log('Cart response:', response.data);
+      
       if (response.data.success) {
         setCart(response.data.data);
+        console.log('Cart loaded successfully:', response.data.data);
       } else {
         console.error('Cart API returned error:', response.data.message);
         setCart({ items: [], total: 0, count: 0 });
       }
     } catch (error: any) {
       console.error('Error fetching cart:', error);
+      
+      // Log detailed error information
+      console.error('Cart error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method
+      });
+      
       // Initialize empty cart if there's an error
       setCart({ items: [], total: 0, count: 0 });
       
@@ -58,7 +72,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       if (error.response?.status === 401) {
         console.warn('Cart: Authentication required');
       } else if (error.response?.status === 500) {
-        console.error('Cart: Server error');
+        console.error('Cart: Server error - check backend logs');
       } else if (error.response?.status === 400) {
         console.warn('Cart: Bad request - session may not be initialized');
       }
