@@ -71,11 +71,21 @@ const Checkout: React.FC = () => {
     );
   }
 
-  // Only redirect to cart if we're sure the cart is loaded and empty
+  // Use useEffect to handle navigation to avoid state updates during render
+  useEffect(() => {
+    if (cart && cart.items && cart.items.length === 0) {
+      console.log('Cart is empty, redirecting to cart page');
+      navigate('/cart');
+    }
+  }, [cart, navigate]);
+
+  // If cart is empty, show loading while navigating
   if (cart && cart.items && cart.items.length === 0) {
-    console.log('Cart is empty, redirecting to cart page');
-    navigate('/cart');
-    return null;
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Loading text="Redirecionando..." />
+      </div>
+    );
   }
 
   const validateShipping = () => {
