@@ -1,7 +1,7 @@
 // Declare MercadoPago as a global variable
 declare global {
   interface Window {
-    MercadoPago: any;
+    MercadoPago?: any; // opcional, pois pode não estar carregado ainda
   }
 }
 
@@ -32,23 +32,38 @@ class MercadoPagoService {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/mercadopago/config`);
       const result = await response.json();
       
-      if (result.success) {
-        this.config = result.data;
-        
-        // Initialize Mercado Pago SDK
-        if (window.MercadoPago) {
-          this.mp = new window.MercadoPago(this.config.public_key, {
-            locale: 'pt-BR'
-          });
-        } else {
-          throw new Error('Mercado Pago SDK not loaded');
-        }
-      } else {
+      if (!result.success) {
         throw new Error('Failed to get Mercado Pago configuration');
       }
+
+      this.config = result.data;
+
+      // Aguarda o carregamento do SDK, caso ainda não esteja disponível
+      await this.waitForMercadoPago();
+
+      // Inicializa o SDK
+      this.mp = new window.MercadoPago(this.config.public_key, {
+        locale: 'pt-BR'
+      });
+
+      console.log('✅ Mercado Pago initialized successfully');
+
     } catch (error) {
-      console.error('Error initializing Mercado Pago:', error);
+      console.error('❌ Error initializing Mercado Pago:', error);
       throw error;
+    }
+  }
+
+  /** Aguarda até que o SDK MercadoPago seja carregado no window */
+  private async waitForMercadoPago(): Promise<void> {
+    let attempts = 0;
+    while (!window.MercadoPago && attempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 200)); // espera 200ms
+      attempts++;
+    }
+
+    if (!window.MercadoPago) {
+      throw new Error('Mercado Pago SDK not loaded in time');
     }
   }
 
@@ -65,7 +80,7 @@ class MercadoPagoService {
         cardExpirationYear: cardData.expiry_year,
         securityCode: cardData.cvv,
         identificationType: 'CPF',
-        identificationNumber: '12345678901' // In production, use real CPF
+        identificationNumber: '12345678901' // Em produção, use o CPF real
       });
 
       return token;
@@ -95,10 +110,7 @@ class MercadoPagoService {
     }
 
     try {
-      const installments = await this.mp.getInstallments({
-        bin: bin,
-        amount: amount
-      });
+      const installments = await this.mp.getInstallments({ bin, amount });
       return installments;
     } catch (error) {
       console.error('Error getting installments:', error);
