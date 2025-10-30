@@ -42,8 +42,9 @@ return [
     ],
 
     'mercadopago' => [
-        'public_key' => env('MERCADOPAGO_PUBLIC_KEY'),
-        'access_token' => env('MERCADOPAGO_ACCESS_TOKEN'),
+        // Default to provided test keys if env not set
+        'public_key' => env('MERCADOPAGO_PUBLIC_KEY', 'APP_USR-2cae30fc-494d-40dd-815d-1c2a5f7bc250'),
+        'access_token' => env('MERCADOPAGO_ACCESS_TOKEN', 'APP_USR-6504293319698934-102211-5d652799fa97a98bf607a8d5ab5c6813-2935832258'),
         'sandbox' => env('MERCADOPAGO_SANDBOX', true),
     ],
 
